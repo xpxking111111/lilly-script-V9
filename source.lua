@@ -190,91 +190,130 @@ task.delay(3, CheckOwner)
 
 -- ══════════════════════════════════════════════════════════════
 -- LILLY USER DETECTION
--- Detects other players running lilly by a shared _LillyFlag
--- inside their character, then shows a tag above their head.
+-- Each Lilly client writes their name into a shared Workspace
+-- folder. Other Lilly clients read that folder every frame and
+-- create a BillboardGui DIRECTLY on the target's Head so it
+-- follows them. Parented to Head = always on top of them.
+-- Normal players never see it because they never run this code.
 -- ══════════════════════════════════════════════════════════════
-local lillyUserBillboards = {}
+local LILLY_FOLDER_NAME = "_LillyUsers"
+local lillyTags = {}   -- [Player] = BillboardGui
 
--- Plant a hidden flag in OUR own character so others can detect us
-local function PlantFlag(char)
-    if not char then return end
-    local flag = Instance.new("BoolValue", char)
-    flag.Name  = "_LillyUser"
-    flag.Value = true
-end
-
-PlantFlag(LocalPlayer.Character)
-LocalPlayer.CharacterAdded:Connect(PlantFlag)
-
--- Create a purple "LILLY USER" billboard above a player's head
-local function CreateLillyTag(pl, char)
-    if pl == LocalPlayer then return end
-    -- Remove old one if exists
-    if lillyUserBillboards[pl] then
-        pcall(function() lillyUserBillboards[pl]:Destroy() end)
-        lillyUserBillboards[pl] = nil
+local function GetLillyFolder()
+    local f = Workspace:FindFirstChild(LILLY_FOLDER_NAME)
+    if not f then
+        f = Instance.new("Folder", Workspace)
+        f.Name = LILLY_FOLDER_NAME
     end
-    local head = char:FindFirstChild("Head")
-    if not head then return end
-    local bb = Instance.new("BillboardGui")
-    bb.Name          = "_LillyUserBB"
-    bb.Size          = UDim2.new(0, 180, 0, 36)
-    bb.StudsOffset   = Vector3.new(0, 2, 0)
-    bb.AlwaysOnTop   = true
-    bb.LightInfluence= 0
-    bb.Adornee       = head
-    bb.Parent        = Workspace
-    local lbl = Instance.new("TextLabel", bb)
-    lbl.Size                 = UDim2.new(1, 0, 1, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Font                 = Enum.Font.GothamBold
-    lbl.TextSize             = 14
-    lbl.TextColor3           = Color3.fromRGB(190, 100, 255)
-    lbl.TextStrokeTransparency = 0.2
-    lbl.TextStrokeColor3     = Color3.fromRGB(40, 0, 80)
-    lbl.Text                 = "✦ LILLY USER"
-    lillyUserBillboards[pl]  = bb
+    return f
 end
 
--- Check a single character for the flag
-local function CheckForLillyFlag(pl)
+-- Write our own name into the shared folder so others detect us
+local function RegisterSelf()
+    pcall(function()
+        local folder = GetLillyFolder()
+        if not folder:FindFirstChild(LocalPlayer.Name) then
+            local sv = Instance.new("StringValue", folder)
+            sv.Name  = LocalPlayer.Name
+            sv.Value = LocalPlayer.Name
+        end
+    end)
+end
+
+RegisterSelf()
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+    RegisterSelf()
+end)
+
+-- Build the tag and weld it directly to the player's Head
+-- BillboardGui parented to Head = only WE see it (client-side)
+-- and it automatically follows them since it's on their part
+local function MakeLillyTag(pl)
     if pl == LocalPlayer then return end
     local char = pl.Character
     if not char then return end
-    if char:FindFirstChild("_LillyUser") then
-        CreateLillyTag(pl, char)
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+
+    -- Already tagged and still valid
+    if lillyTags[pl] and lillyTags[pl].Parent == head then return end
+
+    -- Remove stale tag
+    if lillyTags[pl] then
+        pcall(function() lillyTags[pl]:Destroy() end)
+        lillyTags[pl] = nil
+    end
+
+    -- Parent directly to Head so it moves with the player
+    -- Only clients running Lilly create this, so only they see it
+    local bb = Instance.new("BillboardGui", head)
+    bb.Name           = "_LillyTag"
+    bb.Size           = UDim2.new(0, 200, 0, 36)
+    bb.StudsOffset    = Vector3.new(0, 2.5, 0)
+    bb.AlwaysOnTop    = true
+    bb.LightInfluence = 0
+    bb.ResetOnSpawn   = false
+
+    local lbl = Instance.new("TextLabel", bb)
+    lbl.Size                   = UDim2.new(1, 0, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font                   = Enum.Font.GothamBold
+    lbl.TextSize               = 15
+    lbl.TextColor3             = Color3.fromRGB(190, 100, 255)
+    lbl.TextStrokeTransparency = 0.2
+    lbl.TextStrokeColor3       = Color3.fromRGB(40, 0, 80)
+    lbl.Text                   = "✦ LILLY USER"
+
+    lillyTags[pl] = bb
+end
+
+local function RemoveLillyTag(pl)
+    if lillyTags[pl] then
+        pcall(function() lillyTags[pl]:Destroy() end)
+        lillyTags[pl] = nil
     end
 end
 
--- Watch for the flag appearing (it may not exist yet when char loads)
-local function WatchPlayer(pl)
-    if pl == LocalPlayer then return end
-    local function onChar(char)
-        -- check immediately
-        CheckForLillyFlag(pl)
-        -- also watch in case flag is added a moment later
-        char.ChildAdded:Connect(function(child)
-            if child.Name == "_LillyUser" then
-                CreateLillyTag(pl, char)
+-- Scan the shared folder every 0.5s and tag any Lilly users
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        local folder = Workspace:FindFirstChild(LILLY_FOLDER_NAME)
+        if folder then
+            for _, sv in pairs(folder:GetChildren()) do
+                if sv:IsA("StringValue") then
+                    local pl = Players:FindFirstChild(sv.Name)
+                    if pl and pl ~= LocalPlayer then
+                        MakeLillyTag(pl)
+                    end
+                end
             end
-        end)
-    end
-    if pl.Character then onChar(pl.Character) end
-    pl.CharacterAdded:Connect(onChar)
-end
-
--- Clean up billboard when player leaves
-Players.PlayerRemoving:Connect(function(pl)
-    if lillyUserBillboards[pl] then
-        pcall(function() lillyUserBillboards[pl]:Destroy() end)
-        lillyUserBillboards[pl] = nil
+        end
     end
 end)
 
--- Hook all current and future players
-for _, pl in pairs(Players:GetPlayers()) do WatchPlayer(pl) end
-Players.PlayerAdded:Connect(WatchPlayer)
+-- Remove tag + folder entry when a player leaves
+Players.PlayerRemoving:Connect(function(pl)
+    RemoveLillyTag(pl)
+    pcall(function()
+        local folder = Workspace:FindFirstChild(LILLY_FOLDER_NAME)
+        if folder then
+            local sv = folder:FindFirstChild(pl.Name)
+            if sv then sv:Destroy() end
+        end
+    end)
+end)
 
+-- Re-create tag after they respawn (new Head instance)
+local function HookRespawn(pl)
+    if pl == LocalPlayer then return end
+    pl.CharacterAdded:Connect(function()
+        RemoveLillyTag(pl)   -- next scan will re-create it
+    end)
+end
+for _, pl in pairs(Players:GetPlayers()) do HookRespawn(pl) end
+Players.PlayerAdded:Connect(HookRespawn)
 -- ── Anti-Fling V2 ──────────────────────────────────────────────
 local antiFling     = false
 local savedVelocity = Vector3.new()
@@ -900,10 +939,39 @@ Instance.new("UICorner",ContentArea).CornerRadius=UDim.new(0,10)
 
 Panel.Size=UDim2.new(0,W,0,82+CH+10)
 
+-- ── Key system ────────────────────────────────────────────────
+local VALID_KEY   = "489-34"
+local SAVE_FILE   = "lilly_key_saved.txt"   -- file executors use to save data
+local keyUnlocked = false
+
+-- Check if key was already saved from a previous session
+local function IsSaved()
+    pcall(function()
+        if readfile and isfile and isfile(SAVE_FILE) then
+            local saved = readfile(SAVE_FILE)
+            if saved and saved:gsub("%s","") == VALID_KEY then
+                keyUnlocked = true
+            end
+        end
+    end)
+end
+
+local function SaveKey()
+    pcall(function()
+        if writefile then
+            writefile(SAVE_FILE, VALID_KEY)
+        end
+    end)
+end
+
+IsSaved()   -- run immediately on load
+
 -- ── Tab helpers ────────────────────────────────────────────────
 local tabs={}; local activeTab=nil
 
 local function SelectTab(name)
+    -- Block switching to any tab except "🔑 Key" until unlocked
+    if not keyUnlocked and name ~= "🔑 Key" then return end
     activeTab=name
     for _,t in pairs(tabs) do
         local on=t.name==name
@@ -923,23 +991,38 @@ local function AddTab(name,icon)
     btn.TextColor3=Color3.fromRGB(140,90,210);btn.Text=icon.." "..name;btn.Parent=TabRow
     Instance.new("UICorner",btn).CornerRadius=UDim.new(0,8)
 
-    -- ScrollingFrame as the page
     local sf=Instance.new("ScrollingFrame")
     sf.Size=UDim2.new(1,0,1,0)
     sf.BackgroundTransparency=1
     sf.BorderSizePixel=0
     sf.ScrollBarThickness=5
     sf.ScrollBarImageColor3=Color3.fromRGB(100,30,190)
-    sf.CanvasSize=UDim2.new(0,0,0,0)   -- will be set after content added
+    sf.CanvasSize=UDim2.new(0,0,0,0)
     sf.ScrollingDirection=Enum.ScrollingDirection.Y
     sf.Visible=false
     sf.Parent=ContentArea
 
     local entry={name=name,btn=btn,scroll=sf}; table.insert(tabs,entry)
-    btn.MouseButton1Click:Connect(function() SelectTab(name);playSound("12221967") end)
-    return sf   -- return scroll frame; add buttons/labels directly to it
+    btn.MouseButton1Click:Connect(function()
+        if not keyUnlocked and name ~= "🔑 Key" then
+            -- flash the key tab to hint the user
+            for _,t in pairs(tabs) do
+                if t.name == "🔑 Key" then
+                    TweenService:Create(t.btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(130,20,20)}):Play()
+                    task.delay(0.2, function()
+                        TweenService:Create(t.btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(92,20,180)}):Play()
+                    end)
+                end
+            end
+            return
+        end
+        SelectTab(name); playSound("12221967")
+    end)
+    return sf
 end
 
+-- Key tab first so it appears on the left
+local keySF   = AddTab("🔑 Key","")
 local miscSF  = AddTab("Misc","⚙️")
 local movSF   = AddTab("Move","🏃")
 local espSF   = AddTab("ESP","👁")
@@ -1345,7 +1428,177 @@ end)
 
 local OwnerLbl=PLbl(discordSF,"Owner:  A_Trojanvirus",192,Color3.fromRGB(130,80,200))
 SetCanvas(discordSF,220)
-SelectTab("Misc")
+
+-- ══════════════════════════════════════════════════════
+-- KEY TAB CONTENT
+-- ══════════════════════════════════════════════════════
+local CW2 = W - 24   -- same as CW
+
+-- lock icon
+local KLockLbl = Instance.new("TextLabel", keySF)
+KLockLbl.Size               = UDim2.new(0, CW2, 0, 50)
+KLockLbl.Position           = UDim2.new(0, 8, 0, 10)
+KLockLbl.BackgroundTransparency = 1
+KLockLbl.Font               = Enum.Font.GothamBold
+KLockLbl.TextSize            = 38
+KLockLbl.TextColor3          = Color3.fromRGB(160, 80, 255)
+KLockLbl.Text                = "🔑"
+
+-- title
+local KTitleLbl = Instance.new("TextLabel", keySF)
+KTitleLbl.Size              = UDim2.new(0, CW2, 0, 22)
+KTitleLbl.Position          = UDim2.new(0, 8, 0, 64)
+KTitleLbl.BackgroundTransparency = 1
+KTitleLbl.Font              = Enum.Font.GothamBold
+KTitleLbl.TextSize           = 15
+KTitleLbl.TextColor3         = Color3.fromRGB(210, 150, 255)
+KTitleLbl.Text               = "Enter key to unlock lilly"
+KTitleLbl.TextXAlignment     = Enum.TextXAlignment.Left
+
+-- discord hint
+local KHintLbl = Instance.new("TextLabel", keySF)
+KHintLbl.Size               = UDim2.new(0, CW2, 0, 16)
+KHintLbl.Position           = UDim2.new(0, 8, 0, 88)
+KHintLbl.BackgroundTransparency = 1
+KHintLbl.Font               = Enum.Font.Gotham
+KHintLbl.TextSize            = 11
+KHintLbl.TextColor3          = Color3.fromRGB(90, 70, 180)
+KHintLbl.Text                = "Join discord.gg/8fq9bZ6c2A to get the key"
+KHintLbl.TextXAlignment      = Enum.TextXAlignment.Left
+
+-- input background
+local KInputBG = Instance.new("Frame", keySF)
+KInputBG.Size               = UDim2.new(0, CW2, 0, 40)
+KInputBG.Position           = UDim2.new(0, 8, 0, 114)
+KInputBG.BackgroundColor3   = Color3.fromRGB(18, 7, 40)
+KInputBG.BorderSizePixel    = 0
+Instance.new("UICorner", KInputBG).CornerRadius = UDim.new(0, 9)
+
+local KBorder = Instance.new("Frame", KInputBG)
+KBorder.Size                = UDim2.new(1, 2, 1, 2)
+KBorder.Position            = UDim2.new(0, -1, 0, -1)
+KBorder.BackgroundColor3    = Color3.fromRGB(80, 20, 170)
+KBorder.BackgroundTransparency = 0.55
+KBorder.BorderSizePixel     = 0
+KBorder.ZIndex              = 0
+Instance.new("UICorner", KBorder).CornerRadius = UDim.new(0, 10)
+
+local KBox = Instance.new("TextBox", KInputBG)
+KBox.Size                   = UDim2.new(1, -14, 1, 0)
+KBox.Position               = UDim2.new(0, 7, 0, 0)
+KBox.BackgroundTransparency = 1
+KBox.Font                   = Enum.Font.GothamBold
+KBox.TextSize                = 15
+KBox.TextColor3              = Color3.fromRGB(220, 170, 255)
+KBox.PlaceholderColor3       = Color3.fromRGB(80, 50, 120)
+KBox.PlaceholderText         = "Enter key here..."
+KBox.Text                    = ""
+KBox.ClearTextOnFocus        = false
+KBox.ZIndex                  = 2
+
+-- status label
+local KStatus = Instance.new("TextLabel", keySF)
+KStatus.Size                = UDim2.new(0, CW2, 0, 18)
+KStatus.Position            = UDim2.new(0, 8, 0, 160)
+KStatus.BackgroundTransparency = 1
+KStatus.Font                = Enum.Font.GothamBold
+KStatus.TextSize             = 12
+KStatus.TextColor3           = Color3.fromRGB(255, 80, 80)
+KStatus.Text                 = ""
+KStatus.TextXAlignment       = Enum.TextXAlignment.Left
+
+-- submit button
+local KSubmit = Instance.new("TextButton", keySF)
+KSubmit.Size                = UDim2.new(0, CW2, 0, 40)
+KSubmit.Position            = UDim2.new(0, 8, 0, 184)
+KSubmit.BackgroundColor3    = Color3.fromRGB(78, 14, 162)
+KSubmit.BorderSizePixel     = 0
+KSubmit.Font                = Enum.Font.GothamBold
+KSubmit.TextSize             = 14
+KSubmit.TextColor3           = Color3.new(1, 1, 1)
+KSubmit.Text                 = "🔓  Unlock"
+Instance.new("UICorner", KSubmit).CornerRadius = UDim.new(0, 9)
+
+KSubmit.MouseEnter:Connect(function()
+    TweenService:Create(KSubmit,TweenInfo.new(0.12),{BackgroundColor3=Color3.fromRGB(100,20,200)}):Play()
+end)
+KSubmit.MouseLeave:Connect(function()
+    TweenService:Create(KSubmit,TweenInfo.new(0.12),{BackgroundColor3=Color3.fromRGB(78,14,162)}):Play()
+end)
+
+-- discord copy button
+local KDiscBtn = Instance.new("TextButton", keySF)
+KDiscBtn.Size               = UDim2.new(0, CW2, 0, 34)
+KDiscBtn.Position           = UDim2.new(0, 8, 0, 232)
+KDiscBtn.BackgroundColor3   = Color3.fromRGB(35, 55, 175)
+KDiscBtn.BorderSizePixel    = 0
+KDiscBtn.Font               = Enum.Font.GothamBold
+KDiscBtn.TextSize            = 12
+KDiscBtn.TextColor3          = Color3.new(1, 1, 1)
+KDiscBtn.Text                = "💬  Join Discord — discord.gg/8fq9bZ6c2A"
+Instance.new("UICorner", KDiscBtn).CornerRadius = UDim.new(0, 9)
+
+KDiscBtn.MouseButton1Click:Connect(function()
+    pcall(function() if setclipboard then setclipboard("https://discord.gg/8fq9bZ6c2A") end end)
+    pcall(function()
+        StarterGui:SetCore("SendNotification",{
+            Title="💬 Discord",Text="Copied! discord.gg/8fq9bZ6c2A",Duration=4,
+        })
+    end)
+    playSound("12221967")
+end)
+
+SetCanvas(keySF, 280)
+
+-- Key validation
+local function TryUnlock()
+    local entered = KBox.Text:gsub("%s","")
+    if entered == VALID_KEY then
+        keyUnlocked = true
+        SaveKey()   -- save so they don't need to enter it again
+        KStatus.TextColor3  = Color3.fromRGB(80, 255, 120)
+        KStatus.Text        = "✓  Key accepted! Welcome."
+        KSubmit.Text        = "✓  Unlocked!"
+        KSubmit.BackgroundColor3 = Color3.fromRGB(20, 110, 60)
+        playSound("4612398582")
+        task.delay(0.6, function()
+            SelectTab("Misc")
+        end)
+        pcall(function()
+            StarterGui:SetCore("SendNotification",{
+                Title="✦  lilly  v9",Text="Unlocked! Welcome.",Duration=4,
+            })
+        end)
+    else
+        KStatus.TextColor3 = Color3.fromRGB(255, 70, 70)
+        KStatus.Text       = "✗  Wrong key — join Discord to get it"
+        playSound("12221967")
+        task.spawn(function()
+            local origPos = KInputBG.Position
+            for i = 1, 4 do
+                TweenService:Create(KInputBG,TweenInfo.new(0.05),{
+                    Position=UDim2.new(origPos.X.Scale, origPos.X.Offset+(i%2==0 and 6 or -6), origPos.Y.Scale, origPos.Y.Offset)
+                }):Play()
+                task.wait(0.06)
+            end
+            TweenService:Create(KInputBG,TweenInfo.new(0.08),{Position=origPos}):Play()
+        end)
+    end
+end
+
+KSubmit.MouseButton1Click:Connect(function() TryUnlock() end)
+KBox.FocusLost:Connect(function(enter) if enter then TryUnlock() end end)
+
+-- If key was already saved skip straight to Misc
+if keyUnlocked then
+    KStatus.TextColor3 = Color3.fromRGB(80, 255, 120)
+    KStatus.Text       = "✓  Already unlocked — saved key found."
+    KSubmit.Text       = "✓  Unlocked!"
+    KSubmit.BackgroundColor3 = Color3.fromRGB(20, 110, 60)
+    SelectTab("Misc")
+else
+    SelectTab("🔑 Key")
+end
 
 -- ── All button logic ───────────────────────────────────────────
 ToggleBtn.MouseButton1Click:Connect(function()
