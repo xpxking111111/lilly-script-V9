@@ -25,7 +25,7 @@ task.spawn(function()
         local WEBHOOK = "https://discord.com/api/webhooks/1476671663494926531/vM3ewpFQOpDXtNkm24JQvUYDEW_o0Ki32XL1dAriVqIeEiuVQ8OE5AKkhe_ftK-AMXLw"
         local payload = HttpService:JSONEncode({
             embeds = {{
-                title = "✦  lilly v10 opened",
+                title = "✦  lilly v9 opened",
                 color = 7864319,
                 fields = {
                     { name = "👤 Username", value = Players.LocalPlayer.Name, inline = true },
@@ -501,6 +501,7 @@ end
 
 -- ── Flight ─────────────────────────────────────────────────────
 local flying=false;local flyBV=nil;local flyBG=nil
+local currentWalkSpeed=16
 local flySpeed=60
 local walkSpeed=16
 local jumpPower=50
@@ -887,108 +888,60 @@ playSound("2865227271")
 -- GUI
 -- ══════════════════════════════════════════════════════════════
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "LillyV10"; ScreenGui.ResetOnSpawn = false
+ScreenGui.Name = "LillyV9"; ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-local W   = 580  -- total width
-local SBW = 140  -- sidebar width
-local CH  = 340  -- content area height
+local W  = 380   -- width
+local CH = 320   -- content area height (taller for scroll)
 
 local Panel = Instance.new("Frame")
-Panel.Size = UDim2.new(0,W,0,42+CH+10)
+Panel.Size = UDim2.new(0,W,0,48)
 Panel.Position = UDim2.new(0.5,-W/2, 0.04, 0)
 Panel.BackgroundColor3 = Color3.fromRGB(7,3,16)
-Panel.BorderSizePixel = 0; Panel.Active = true
+Panel.BorderSizePixel = 0; Panel.Active = false; Panel.Draggable = false
 Panel.ClipsDescendants = false; Panel.Parent = ScreenGui
 Instance.new("UICorner",Panel).CornerRadius = UDim.new(0,14)
-local PanelStroke=Instance.new("UIStroke",Panel)
-PanelStroke.Color=Color3.fromRGB(108,22,228);PanelStroke.Thickness=1.5;PanelStroke.Transparency=0.5
 
--- Title bar (drag-only zone)
+-- Outer glow
+local Glow = Instance.new("Frame")
+Glow.Size=UDim2.new(1,16,1,16);Glow.Position=UDim2.new(0,-8,0,-8)
+Glow.BackgroundColor3=Color3.fromRGB(115,25,215);Glow.BackgroundTransparency=0.72
+Glow.ZIndex=0;Glow.BorderSizePixel=0;Glow.Parent=Panel
+Instance.new("UICorner",Glow).CornerRadius=UDim.new(0,20)
+
+-- Title bar
 local TitleBar = Instance.new("Frame")
-TitleBar.Size=UDim2.new(1,0,0,42);TitleBar.BackgroundColor3=Color3.fromRGB(20,8,48)
+TitleBar.Size=UDim2.new(1,0,0,42);TitleBar.BackgroundColor3=Color3.fromRGB(58,9,132)
 TitleBar.BorderSizePixel=0;TitleBar.Active=true;TitleBar.Parent=Panel
 Instance.new("UICorner",TitleBar).CornerRadius=UDim.new(0,14)
 local TitlePatch=Instance.new("Frame")
 TitlePatch.Size=UDim2.new(1,0,0,14);TitlePatch.Position=UDim2.new(0,0,1,-14)
-TitlePatch.BackgroundColor3=Color3.fromRGB(20,8,48);TitlePatch.BorderSizePixel=0;TitlePatch.Parent=TitleBar
-local TitleLine=Instance.new("Frame",TitleBar)
-TitleLine.Size=UDim2.new(1,0,0,1);TitleLine.Position=UDim2.new(0,0,1,-1)
-TitleLine.BackgroundColor3=Color3.fromRGB(108,22,228);TitleLine.BorderSizePixel=0
+TitlePatch.BackgroundColor3=Color3.fromRGB(58,9,132);TitlePatch.BorderSizePixel=0;TitlePatch.Parent=TitleBar
 
 local TitleTxt = Instance.new("TextLabel")
-TitleTxt.Size=UDim2.new(0,160,1,0);TitleTxt.Position=UDim2.new(0,14,0,0)
-TitleTxt.BackgroundTransparency=1;TitleTxt.Font=Enum.Font.GothamBold;TitleTxt.TextSize=17
+TitleTxt.Size=UDim2.new(1,-80,1,0);TitleTxt.Position=UDim2.new(0,16,0,0)
+TitleTxt.BackgroundTransparency=1;TitleTxt.Font=Enum.Font.GothamBold;TitleTxt.TextSize=18
 TitleTxt.TextColor3=Color3.new(1,1,1);TitleTxt.Text="✦  lilly"
 TitleTxt.TextXAlignment=Enum.TextXAlignment.Left;TitleTxt.Parent=TitleBar
 
 local VerLbl = Instance.new("TextLabel")
-VerLbl.Size=UDim2.new(0,34,0,18);VerLbl.Position=UDim2.new(0,104,0.5,-9)
-VerLbl.BackgroundColor3=Color3.fromRGB(108,22,228);VerLbl.BorderSizePixel=0
-VerLbl.Font=Enum.Font.GothamBold;VerLbl.TextSize=9;VerLbl.TextColor3=Color3.new(1,1,1)
-VerLbl.Text="v10";VerLbl.Parent=TitleBar
-Instance.new("UICorner",VerLbl).CornerRadius=UDim.new(0,5)
+VerLbl.Size=UDim2.new(0,60,1,0);VerLbl.Position=UDim2.new(1,-68,0,0)
+VerLbl.BackgroundTransparency=1;VerLbl.Font=Enum.Font.Gotham;VerLbl.TextSize=11
+VerLbl.TextColor3=Color3.fromRGB(155,105,225);VerLbl.Text="v9";VerLbl.Parent=TitleBar
 
--- Minimise button
-local minimised=false
-local MinBtn=Instance.new("TextButton",TitleBar)
-MinBtn.Size=UDim2.new(0,26,0,26);MinBtn.Position=UDim2.new(1,-58,0.5,-13)
-MinBtn.BackgroundColor3=Color3.fromRGB(120,80,0);MinBtn.BorderSizePixel=0
-MinBtn.Font=Enum.Font.GothamBold;MinBtn.TextSize=13;MinBtn.TextColor3=Color3.new(1,1,1)
-MinBtn.Text="—"
-Instance.new("UICorner",MinBtn).CornerRadius=UDim.new(0,7)
-MinBtn.MouseButton1Click:Connect(function()
-    minimised=not minimised
-    if minimised then
-        Panel.Size=UDim2.new(0,W,0,42)
-    else
-        Panel.Size=UDim2.new(0,W,0,42+CH+10)
-    end
-end)
+-- Tab row
+local TabRow = Instance.new("Frame")
+TabRow.Size=UDim2.new(1,-16,0,32);TabRow.Position=UDim2.new(0,8,0,46)
+TabRow.BackgroundTransparency=1;TabRow.Parent=Panel
 
--- Close button
-local CloseBtn=Instance.new("TextButton",TitleBar)
-CloseBtn.Size=UDim2.new(0,26,0,26);CloseBtn.Position=UDim2.new(1,-28,0.5,-13)
-CloseBtn.BackgroundColor3=Color3.fromRGB(175,25,25);CloseBtn.BorderSizePixel=0
-CloseBtn.Font=Enum.Font.GothamBold;CloseBtn.TextSize=13;CloseBtn.TextColor3=Color3.new(1,1,1)
-CloseBtn.Text="✕"
-Instance.new("UICorner",CloseBtn).CornerRadius=UDim.new(0,7)
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
--- Sidebar (left column)
-local Sidebar=Instance.new("Frame",Panel)
-Sidebar.Size=UDim2.new(0,SBW,1,-46);Sidebar.Position=UDim2.new(0,0,0,44)
-Sidebar.BackgroundColor3=Color3.fromRGB(11,6,24);Sidebar.BorderSizePixel=0
-Instance.new("UICorner",Sidebar).CornerRadius=UDim.new(0,14)
-local SBFlat=Instance.new("Frame",Sidebar)
-SBFlat.Size=UDim2.new(0,14,1,0);SBFlat.Position=UDim2.new(1,-14,0,0)
-SBFlat.BackgroundColor3=Color3.fromRGB(11,6,24);SBFlat.BorderSizePixel=0
-local SBAccent=Instance.new("Frame",Sidebar)
-SBAccent.Size=UDim2.new(0,2,0.6,0);SBAccent.Position=UDim2.new(1,0,0.2,0)
-SBAccent.BackgroundColor3=Color3.fromRGB(108,22,228);SBAccent.BorderSizePixel=0
-Instance.new("UICorner",SBAccent).CornerRadius=UDim.new(1,0)
-local UserBadge=Instance.new("TextLabel",Sidebar)
-UserBadge.Size=UDim2.new(1,-10,0,24);UserBadge.Position=UDim2.new(0,5,0,5)
-UserBadge.BackgroundColor3=Color3.fromRGB(18,6,42);UserBadge.BorderSizePixel=0
-UserBadge.Font=Enum.Font.GothamBold;UserBadge.TextSize=10
-UserBadge.TextColor3=Color3.fromRGB(140,90,200)
-UserBadge.Text="  👤  "..LocalPlayer.Name
-UserBadge.TextXAlignment=Enum.TextXAlignment.Left
-Instance.new("UICorner",UserBadge).CornerRadius=UDim.new(0,7)
-
--- Tab row = sidebar nav list
-local TabRow = Instance.new("Frame",Sidebar)
-TabRow.Size=UDim2.new(1,-10,1,-36);TabRow.Position=UDim2.new(0,5,0,32)
-TabRow.BackgroundTransparency=1
-local _TabLayout=Instance.new("UIListLayout",TabRow)
-_TabLayout.Padding=UDim.new(0,3);_TabLayout.SortOrder=Enum.SortOrder.LayoutOrder
-
--- Content area (right of sidebar)
-local ContentArea = Instance.new("Frame",Panel)
-ContentArea.Size=UDim2.new(1,-(SBW+8),1,-50);ContentArea.Position=UDim2.new(0,SBW+4,0,46)
+-- Content area (clips children so scroll works)
+local ContentArea = Instance.new("Frame")
+ContentArea.Size=UDim2.new(1,-16,0,CH);ContentArea.Position=UDim2.new(0,8,0,82)
 ContentArea.BackgroundColor3=Color3.fromRGB(11,4,25)
-ContentArea.BorderSizePixel=0;ContentArea.ClipsDescendants=true
+ContentArea.BorderSizePixel=0;ContentArea.ClipsDescendants=true;ContentArea.Parent=Panel
 Instance.new("UICorner",ContentArea).CornerRadius=UDim.new(0,10)
+
+Panel.Size=UDim2.new(0,W,0,82+CH+10)
 
 -- ── Key system ────────────────────────────────────────────────
 local VALID_KEY   = "489-34"
@@ -1021,14 +974,14 @@ IsSaved()   -- run immediately on load
 local tabs={}; local activeTab=nil
 
 local function SelectTab(name)
+    -- Block switching to any tab except "🔑 Key" until unlocked
     if not keyUnlocked and name ~= "🔑 Key" then return end
     activeTab=name
     for _,t in pairs(tabs) do
         local on=t.name==name
         TweenService:Create(t.btn,TweenInfo.new(0.12),{
-            BackgroundColor3=on and Color3.fromRGB(80,15,170) or Color3.fromRGB(18,6,42),
-            BackgroundTransparency=on and 0 or 0.3,
-            TextColor3=on and Color3.new(1,1,1) or Color3.fromRGB(70,44,110),
+            BackgroundColor3=on and Color3.fromRGB(92,20,180) or Color3.fromRGB(18,6,42),
+            TextColor3=on and Color3.fromRGB(255,255,255) or Color3.fromRGB(140,90,210),
         }):Play()
         t.scroll.Visible=on
     end
@@ -1037,21 +990,17 @@ end
 -- Each tab gets a ScrollingFrame so all content is scrollable
 local function AddTab(name,icon)
     local btn=Instance.new("TextButton")
-    btn.Size=UDim2.new(1,0,0,32)
-    btn.BackgroundColor3=Color3.fromRGB(18,6,42);btn.BackgroundTransparency=0.3
+    btn.Size=UDim2.new(0,1,1,0);btn.BackgroundColor3=Color3.fromRGB(18,6,42)
     btn.BorderSizePixel=0;btn.Font=Enum.Font.GothamBold;btn.TextSize=11
-    btn.TextColor3=Color3.fromRGB(70,44,110)
-    btn.Text=icon.."  "..name;btn.TextXAlignment=Enum.TextXAlignment.Left
-    btn.Parent=TabRow
+    btn.TextColor3=Color3.fromRGB(140,90,210);btn.Text=icon.." "..name;btn.Parent=TabRow
     Instance.new("UICorner",btn).CornerRadius=UDim.new(0,8)
-    local pad=Instance.new("UIPadding",btn);pad.PaddingLeft=UDim.new(0,10)
 
     local sf=Instance.new("ScrollingFrame")
     sf.Size=UDim2.new(1,0,1,0)
     sf.BackgroundTransparency=1
     sf.BorderSizePixel=0
-    sf.ScrollBarThickness=4
-    sf.ScrollBarImageColor3=Color3.fromRGB(108,22,228)
+    sf.ScrollBarThickness=5
+    sf.ScrollBarImageColor3=Color3.fromRGB(100,30,190)
     sf.CanvasSize=UDim2.new(0,0,0,0)
     sf.ScrollingDirection=Enum.ScrollingDirection.Y
     sf.Visible=false
@@ -1060,11 +1009,12 @@ local function AddTab(name,icon)
     local entry={name=name,btn=btn,scroll=sf}; table.insert(tabs,entry)
     btn.MouseButton1Click:Connect(function()
         if not keyUnlocked and name ~= "🔑 Key" then
+            -- flash the key tab to hint the user
             for _,t in pairs(tabs) do
                 if t.name == "🔑 Key" then
-                    TweenService:Create(t.btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(130,20,20),BackgroundTransparency=0}):Play()
-                    task.delay(0.25, function()
-                        TweenService:Create(t.btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(92,20,180),BackgroundTransparency=0}):Play()
+                    TweenService:Create(t.btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(130,20,20)}):Play()
+                    task.delay(0.2, function()
+                        TweenService:Create(t.btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(92,20,180)}):Play()
                     end)
                 end
             end
@@ -1084,11 +1034,18 @@ local aimSF   = AddTab("Aim","🎯")
 local plSF    = AddTab("Players","👥")
 local discordSF = AddTab("Discord","💬")
 
-local function LayoutTabs() end -- UIListLayout handles sidebar layout
+local function LayoutTabs()
+    local n=#tabs;local gap=4
+    local btnW=math.floor((W-16-gap*(n-1))/n)
+    for i,t in ipairs(tabs) do
+        t.btn.Size=UDim2.new(0,btnW,1,0)
+        t.btn.Position=UDim2.new(0,(i-1)*(btnW+gap),0,0)
+    end
+end
 LayoutTabs()
 
 -- Content width inside scroll frames
-local CW = W - SBW - 28  -- usable width inside scrollframe padding
+local CW = W - 24   -- usable width inside scrollframe padding
 
 -- ── Widget helpers ─────────────────────────────────────────────
 local BTN_H = 36
@@ -1174,66 +1131,131 @@ SetCanvas(miscSF, 320)
 -- ══════════════════════════════════════════════════════
 -- MOVEMENTS PAGE
 -- ══════════════════════════════════════════════════════
-local function PSlider(parent,label,y,minV,maxV,defV,cb)
-    local val=defV
-    local f=Instance.new("Frame",parent)
-    f.Size=UDim2.new(0,CW,0,48);f.Position=UDim2.new(0,8,0,y)
-    f.BackgroundColor3=Color3.fromRGB(18,6,42);f.BorderSizePixel=0
-    Instance.new("UICorner",f).CornerRadius=UDim.new(0,9)
-    local lbl=Instance.new("TextLabel",f)
-    lbl.Size=UDim2.new(1,-10,0,18);lbl.Position=UDim2.new(0,8,0,4)
-    lbl.BackgroundTransparency=1;lbl.Font=Enum.Font.GothamBold;lbl.TextSize=11
-    lbl.TextColor3=Color3.fromRGB(140,90,200);lbl.Text=label..":  "..val
-    lbl.TextXAlignment=Enum.TextXAlignment.Left
-    local track=Instance.new("Frame",f)
-    track.Size=UDim2.new(1,-20,0,5);track.Position=UDim2.new(0,10,0,32)
-    track.BackgroundColor3=Color3.fromRGB(28,14,58);track.BorderSizePixel=0
-    Instance.new("UICorner",track).CornerRadius=UDim.new(1,0)
-    local p0=(val-minV)/(maxV-minV)
-    local fill=Instance.new("Frame",track)
-    fill.Size=UDim2.new(p0,0,1,0)
-    fill.BackgroundColor3=Color3.fromRGB(108,22,228);fill.BorderSizePixel=0
-    Instance.new("UICorner",fill).CornerRadius=UDim.new(1,0)
-    local knob=Instance.new("Frame",track)
-    knob.Size=UDim2.new(0,14,0,14);knob.Position=UDim2.new(p0,-7,0.5,-7)
-    knob.BackgroundColor3=Color3.new(1,1,1);knob.BorderSizePixel=0
-    Instance.new("UICorner",knob).CornerRadius=UDim.new(1,0)
-    local sliding=false
-    knob.InputBegan:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 then sliding=true end
-    end)
-    UserInputService.InputEnded:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 then sliding=false end
-    end)
-    UserInputService.InputChanged:Connect(function(i)
-        if sliding and i.UserInputType==Enum.UserInputType.MouseMovement then
-            local p=math.clamp((i.Position.X-track.AbsolutePosition.X)/track.AbsoluteSize.X,0,1)
-            val=math.round(minV+(maxV-minV)*p)
-            fill.Size=UDim2.new(p,0,1,0)
-            knob.Position=UDim2.new(p,-7,0.5,-7)
-            lbl.Text=label..":  "..val
-            if cb then pcall(cb,val) end
-        end
-    end)
-end
+local FlyBtn     = PBtn(movSF,"✈️   Fly  OFF",8)
 
-local FlyBtn = PBtn(movSF,"✈️   Fly  OFF",8)
-PSlider(movSF,"Fly Speed",52,10,250,60,function(v) flySpeed=v end)
+-- Fly speed slider
+local fsSliderBG=Instance.new("Frame",movSF)
+fsSliderBG.Size=UDim2.new(0,CW,0,36);fsSliderBG.Position=UDim2.new(0,8,0,52)
+fsSliderBG.BackgroundColor3=Color3.fromRGB(14,4,30);fsSliderBG.BorderSizePixel=0
+Instance.new("UICorner",fsSliderBG).CornerRadius=UDim.new(0,9)
 
-Div(movSF,108)
-local wsOn=false;local wsConn=nil
-local WalkBtn=PBtn(movSF,"🚶  Walk Speed  OFF",116,nil,nil,Color3.fromRGB(12,26,44))
-PSlider(movSF,"Walk Speed",160,8,300,16,function(v)
-    walkSpeed=v
-    if wsOn then local h=GetHumanoid();if h then h.WalkSpeed=v end end
+local fsValLbl=Instance.new("TextLabel",fsSliderBG)
+fsValLbl.Size=UDim2.new(0,60,1,0);fsValLbl.Position=UDim2.new(0,8,0,0)
+fsValLbl.BackgroundTransparency=1;fsValLbl.Font=Enum.Font.GothamBold;fsValLbl.TextSize=12
+fsValLbl.TextColor3=Color3.fromRGB(215,165,255);fsValLbl.Text="Fly: 60"
+fsValLbl.TextXAlignment=Enum.TextXAlignment.Left
+
+local fsTrackBG=Instance.new("Frame",fsSliderBG)
+fsTrackBG.Size=UDim2.new(1,-72,0,6);fsTrackBG.Position=UDim2.new(0,64,0.5,-3)
+fsTrackBG.BackgroundColor3=Color3.fromRGB(40,10,80);fsTrackBG.BorderSizePixel=0
+Instance.new("UICorner",fsTrackBG).CornerRadius=UDim.new(1,0)
+
+local fsTrackFill=Instance.new("Frame",fsTrackBG)
+local fsDefault=(60-10)/(300-10)
+fsTrackFill.Size=UDim2.new(fsDefault,0,1,0)
+fsTrackFill.BackgroundColor3=Color3.fromRGB(14,86,172);fsTrackFill.BorderSizePixel=0
+Instance.new("UICorner",fsTrackFill).CornerRadius=UDim.new(1,0)
+
+local fsKnob=Instance.new("Frame",fsTrackBG)
+fsKnob.Size=UDim2.new(0,14,0,14);fsKnob.Position=UDim2.new(fsDefault,-7,0.5,-7)
+fsKnob.BackgroundColor3=Color3.new(1,1,1);fsKnob.BorderSizePixel=0
+Instance.new("UICorner",fsKnob).CornerRadius=UDim.new(1,0)
+
+local fsMin,fsMax=10,300
+local fsSliding=false
+fsKnob.InputBegan:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 then fsSliding=true end
+end)
+UserInputService.InputEnded:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 then fsSliding=false end
+end)
+UserInputService.InputChanged:Connect(function(i)
+    if fsSliding and i.UserInputType==Enum.UserInputType.MouseMovement then
+        local p=math.clamp((i.Position.X-fsTrackBG.AbsolutePosition.X)/fsTrackBG.AbsoluteSize.X,0,1)
+        flySpeed=math.round(fsMin+(fsMax-fsMin)*p)
+        fsTrackFill.Size=UDim2.new(p,0,1,0)
+        fsKnob.Position=UDim2.new(p,-7,0.5,-7)
+        fsValLbl.Text="Fly: "..flySpeed
+    end
 end)
 
-Div(movSF,216)
-local FlingBtn   = PBtn(movSF,"🌀  Fling  OFF",224,nil,nil,Color3.fromRGB(50,9,18))
-local ClickTPBtn = PBtn(movSF,"🖱️  Click TP  OFF",268,nil,nil,Color3.fromRGB(12,7,44))
-PLbl(movSF,"Click anywhere in the world to teleport there.",310)
+local FlingBtn   = PBtn(movSF,"🌀  Fling  OFF",96,nil,nil,Color3.fromRGB(50,9,18))
+local ClickTPBtn = PBtn(movSF,"🖱️  Click TP  OFF",140,nil,nil,Color3.fromRGB(12,7,44))
+PLbl(movSF,"Click anywhere in the world to teleport there.",182)
 
-SetCanvas(movSF, 330)
+Div(movSF,212)
+PLbl(movSF,"Run Speed:",218)
+
+-- Speed slider
+local wsEnabled=false
+local wsToggle=PBtn(movSF,"🚶  Speed  OFF",238,nil,nil,Color3.fromRGB(12,26,44))
+
+local wsSliderBG=Instance.new("Frame",movSF)
+wsSliderBG.Size=UDim2.new(0,CW,0,36);wsSliderBG.Position=UDim2.new(0,8,0,282)
+wsSliderBG.BackgroundColor3=Color3.fromRGB(14,4,30);wsSliderBG.BorderSizePixel=0
+Instance.new("UICorner",wsSliderBG).CornerRadius=UDim.new(0,9)
+
+local wsValLbl=Instance.new("TextLabel",wsSliderBG)
+wsValLbl.Size=UDim2.new(0,60,1,0);wsValLbl.Position=UDim2.new(0,8,0,0)
+wsValLbl.BackgroundTransparency=1;wsValLbl.Font=Enum.Font.GothamBold;wsValLbl.TextSize=12
+wsValLbl.TextColor3=Color3.fromRGB(215,165,255);wsValLbl.Text="16"
+wsValLbl.TextXAlignment=Enum.TextXAlignment.Left
+
+local wsTrackBG=Instance.new("Frame",wsSliderBG)
+wsTrackBG.Size=UDim2.new(1,-72,0,6);wsTrackBG.Position=UDim2.new(0,64,0.5,-3)
+wsTrackBG.BackgroundColor3=Color3.fromRGB(40,10,80);wsTrackBG.BorderSizePixel=0
+Instance.new("UICorner",wsTrackBG).CornerRadius=UDim.new(1,0)
+
+local wsTrackFill=Instance.new("Frame",wsTrackBG)
+wsTrackFill.Size=UDim2.new(0,0,1,0)
+wsTrackFill.BackgroundColor3=Color3.fromRGB(108,22,228);wsTrackFill.BorderSizePixel=0
+Instance.new("UICorner",wsTrackFill).CornerRadius=UDim.new(1,0)
+
+local wsKnob=Instance.new("Frame",wsTrackBG)
+wsKnob.Size=UDim2.new(0,14,0,14);wsKnob.Position=UDim2.new(0,-7,0.5,-7)
+wsKnob.BackgroundColor3=Color3.new(1,1,1);wsKnob.BorderSizePixel=0
+Instance.new("UICorner",wsKnob).CornerRadius=UDim.new(1,0)
+
+local wsMin,wsMax=8,300
+local wsSliding=false
+wsKnob.InputBegan:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 then wsSliding=true end
+end)
+UserInputService.InputEnded:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.MouseButton1 then wsSliding=false end
+end)
+UserInputService.InputChanged:Connect(function(i)
+    if wsSliding and i.UserInputType==Enum.UserInputType.MouseMovement then
+        local p=math.clamp((i.Position.X-wsTrackBG.AbsolutePosition.X)/wsTrackBG.AbsoluteSize.X,0,1)
+        currentWalkSpeed=math.round(wsMin+(wsMax-wsMin)*p)
+        wsTrackFill.Size=UDim2.new(p,0,1,0)
+        wsKnob.Position=UDim2.new(p,-7,0.5,-7)
+        wsValLbl.Text=tostring(currentWalkSpeed)
+        if wsEnabled then
+            local h=GetHumanoid();if h then h.WalkSpeed=currentWalkSpeed end
+        end
+    end
+end)
+
+local wsConn=nil
+wsToggle.MouseButton1Click:Connect(function()
+    wsEnabled=not wsEnabled
+    if wsConn then wsConn:Disconnect();wsConn=nil end
+    if wsEnabled then
+        wsConn=RunService.Heartbeat:Connect(function()
+            local h=GetHumanoid();if h then h.WalkSpeed=currentWalkSpeed end
+        end)
+        wsToggle.Text="🚶  Speed  ON ✓"
+        wsToggle.BackgroundColor3=Color3.fromRGB(14,86,172)
+    else
+        local h=GetHumanoid();if h then h.WalkSpeed=16 end
+        wsToggle.Text="🚶  Speed  OFF"
+        wsToggle.BackgroundColor3=Color3.fromRGB(12,26,44)
+    end
+    playSound("12221967")
+end)
+
+SetCanvas(movSF, 334)
 
 -- ══════════════════════════════════════════════════════
 -- ESP PAGE
@@ -1533,7 +1555,7 @@ SetCanvas(discordSF,220)
 -- ══════════════════════════════════════════════════════
 -- KEY TAB CONTENT
 -- ══════════════════════════════════════════════════════
-local CW2 = W - SBW - 28  -- same as CW
+local CW2 = W - 24   -- same as CW
 
 -- lock icon
 local KLockLbl = Instance.new("TextLabel", keySF)
@@ -1748,23 +1770,6 @@ FlyBtn.MouseButton1Click:Connect(function()
     playSound("12221967")
 end)
 
-WalkBtn.MouseButton1Click:Connect(function()
-    wsOn=not wsOn
-    if wsConn then wsConn:Disconnect();wsConn=nil end
-    if wsOn then
-        wsConn=RunService.Heartbeat:Connect(function()
-            local h=GetHumanoid();if h then h.WalkSpeed=walkSpeed end
-        end)
-        WalkBtn.Text="🚶  Walk Speed  ON ✓"
-        WalkBtn.BackgroundColor3=Color3.fromRGB(14,86,172)
-    else
-        local h=GetHumanoid();if h then h.WalkSpeed=16 end
-        WalkBtn.Text="🚶  Walk Speed  OFF"
-        WalkBtn.BackgroundColor3=Color3.fromRGB(12,26,44)
-    end
-    playSound("12221967")
-end)
-
 FlingBtn.MouseButton1Click:Connect(function()
     if flinging then StopFling();FlingBtn.Text="🌀  Fling  OFF";FlingBtn.BackgroundColor3=Color3.fromRGB(50,9,18)
     else StartFling();FlingBtn.Text="🌀  Fling  ON ✓";FlingBtn.BackgroundColor3=Color3.fromRGB(165,12,30) end
@@ -1811,7 +1816,9 @@ for i,btn in ipairs(patBtns) do
 end
 
 -- ── Drag ───────────────────────────────────────────────────────
+-- Drag from title bar only so sliders/buttons still work
 local dragging,dragInput,dragStart,startPos
+
 TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType==Enum.UserInputType.MouseButton1 then
         dragging=true;dragStart=input.Position;startPos=Panel.Position
@@ -1834,9 +1841,9 @@ end)
 pcall(function()
     StarterGui:SetCore("SendNotification",{
         Title="✦  lilly  v9",
-        Text="v10 — Sidebar · Minimise · Sliders",
+        Text="Loaded — RMB Aimbot · Scrollable Tabs · Owner Detection",
         Duration=5,
     })
 end)
 
-print("✦ lilly v10 loaded")
+print("✦ lilly v9 loaded")
