@@ -481,24 +481,6 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- ── Fake Lag ───────────────────────────────────────────────────
-local fakeLag=false;local lagConn=nil;local posHistory={};local LAG_DELAY=45
-
-local function StartFakeLag()
-    fakeLag=true;posHistory={}
-    lagConn=RunService.Heartbeat:Connect(function()
-        if not fakeLag then return end
-        local char=LocalPlayer.Character;if not char then return end
-        local root=char:FindFirstChild("HumanoidRootPart");if not root then return end
-        table.insert(posHistory,root.CFrame)
-        if #posHistory>LAG_DELAY then pcall(function() root.CFrame=table.remove(posHistory,1) end) end
-    end)
-end
-local function StopFakeLag()
-    fakeLag=false;posHistory={}
-    if lagConn then lagConn:Disconnect();lagConn=nil end
-end
-
 -- ── Flight ─────────────────────────────────────────────────────
 local flying=false;local flyBV=nil;local flyBG=nil
 local currentWalkSpeed=16
@@ -891,57 +873,82 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "LillyV9"; ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-local W  = 380   -- width
-local CH = 320   -- content area height (taller for scroll)
+local W  = 400
+local CH = 330
 
+-- ── Panel ──────────────────────────────────────────────────────
 local Panel = Instance.new("Frame")
-Panel.Size = UDim2.new(0,W,0,48)
+Panel.Size = UDim2.new(0,W,0,50)
 Panel.Position = UDim2.new(0.5,-W/2, 0.04, 0)
-Panel.BackgroundColor3 = Color3.fromRGB(7,3,16)
+Panel.BackgroundColor3 = Color3.fromRGB(9,5,20)
 Panel.BorderSizePixel = 0; Panel.Active = false; Panel.Draggable = false
 Panel.ClipsDescendants = false; Panel.Parent = ScreenGui
-Instance.new("UICorner",Panel).CornerRadius = UDim.new(0,14)
+Instance.new("UICorner",Panel).CornerRadius = UDim.new(0,16)
+local _Stroke = Instance.new("UIStroke",Panel)
+_Stroke.Color=Color3.fromRGB(100,20,210);_Stroke.Thickness=1.5;_Stroke.Transparency=0.45
 
--- Outer glow
-local Glow = Instance.new("Frame")
-Glow.Size=UDim2.new(1,16,1,16);Glow.Position=UDim2.new(0,-8,0,-8)
-Glow.BackgroundColor3=Color3.fromRGB(115,25,215);Glow.BackgroundTransparency=0.72
-Glow.ZIndex=0;Glow.BorderSizePixel=0;Glow.Parent=Panel
-Instance.new("UICorner",Glow).CornerRadius=UDim.new(0,20)
-
--- Title bar
+-- ── Title bar ──────────────────────────────────────────────────
 local TitleBar = Instance.new("Frame")
-TitleBar.Size=UDim2.new(1,0,0,42);TitleBar.BackgroundColor3=Color3.fromRGB(58,9,132)
-TitleBar.BorderSizePixel=0;TitleBar.Active=true;TitleBar.Parent=Panel
-Instance.new("UICorner",TitleBar).CornerRadius=UDim.new(0,14)
-local TitlePatch=Instance.new("Frame")
-TitlePatch.Size=UDim2.new(1,0,0,14);TitlePatch.Position=UDim2.new(0,0,1,-14)
-TitlePatch.BackgroundColor3=Color3.fromRGB(58,9,132);TitlePatch.BorderSizePixel=0;TitlePatch.Parent=TitleBar
+TitleBar.Size = UDim2.new(1,0,0,46)
+TitleBar.BackgroundColor3 = Color3.fromRGB(18,5,42)
+TitleBar.BorderSizePixel = 0; TitleBar.Active = true; TitleBar.Parent = Panel
+Instance.new("UICorner",TitleBar).CornerRadius = UDim.new(0,16)
+local _TBPatch = Instance.new("Frame",TitleBar)
+_TBPatch.Size=UDim2.new(1,0,0,16);_TBPatch.Position=UDim2.new(0,0,1,-16)
+_TBPatch.BackgroundColor3=Color3.fromRGB(18,5,42);_TBPatch.BorderSizePixel=0
+local _TBLine = Instance.new("Frame",TitleBar)
+_TBLine.Size=UDim2.new(1,0,0,1);_TBLine.Position=UDim2.new(0,0,1,-1)
+_TBLine.BackgroundColor3=Color3.fromRGB(120,30,245);_TBLine.BorderSizePixel=0
 
-local TitleTxt = Instance.new("TextLabel")
-TitleTxt.Size=UDim2.new(1,-80,1,0);TitleTxt.Position=UDim2.new(0,16,0,0)
-TitleTxt.BackgroundTransparency=1;TitleTxt.Font=Enum.Font.GothamBold;TitleTxt.TextSize=18
+local TitleTxt = Instance.new("TextLabel",TitleBar)
+TitleTxt.Size=UDim2.new(1,-110,1,0);TitleTxt.Position=UDim2.new(0,14,0,0)
+TitleTxt.BackgroundTransparency=1;TitleTxt.Font=Enum.Font.GothamBold;TitleTxt.TextSize=17
 TitleTxt.TextColor3=Color3.new(1,1,1);TitleTxt.Text="✦  lilly"
-TitleTxt.TextXAlignment=Enum.TextXAlignment.Left;TitleTxt.Parent=TitleBar
+TitleTxt.TextXAlignment=Enum.TextXAlignment.Left
 
-local VerLbl = Instance.new("TextLabel")
-VerLbl.Size=UDim2.new(0,60,1,0);VerLbl.Position=UDim2.new(1,-68,0,0)
-VerLbl.BackgroundTransparency=1;VerLbl.Font=Enum.Font.Gotham;VerLbl.TextSize=11
-VerLbl.TextColor3=Color3.fromRGB(155,105,225);VerLbl.Text="v9";VerLbl.Parent=TitleBar
+local VerLbl = Instance.new("TextLabel",TitleBar)
+VerLbl.Size=UDim2.new(0,32,0,20);VerLbl.Position=UDim2.new(1,-100,0.5,-10)
+VerLbl.BackgroundColor3=Color3.fromRGB(80,15,170);VerLbl.BorderSizePixel=0
+VerLbl.Font=Enum.Font.GothamBold;VerLbl.TextSize=10;VerLbl.TextColor3=Color3.new(1,1,1)
+VerLbl.Text="v9"
+Instance.new("UICorner",VerLbl).CornerRadius=UDim.new(0,6)
 
--- Tab row
+local minimised = false
+local MinBtn = Instance.new("TextButton",TitleBar)
+MinBtn.Size=UDim2.new(0,30,0,22);MinBtn.Position=UDim2.new(1,-58,0.5,-11)
+MinBtn.BackgroundColor3=Color3.fromRGB(35,10,75);MinBtn.BorderSizePixel=0
+MinBtn.Font=Enum.Font.GothamBold;MinBtn.TextSize=15
+MinBtn.TextColor3=Color3.fromRGB(190,130,255);MinBtn.Text="–"
+Instance.new("UICorner",MinBtn).CornerRadius=UDim.new(0,8)
+Instance.new("UIStroke",MinBtn).Color=Color3.fromRGB(80,20,160)
+
+-- ── Tab row (horizontal across top) ────────────────────────────
 local TabRow = Instance.new("Frame")
-TabRow.Size=UDim2.new(1,-16,0,32);TabRow.Position=UDim2.new(0,8,0,46)
+TabRow.Size=UDim2.new(1,-16,0,34);TabRow.Position=UDim2.new(0,8,0,50)
 TabRow.BackgroundTransparency=1;TabRow.Parent=Panel
 
--- Content area (clips children so scroll works)
+-- ── Content area ───────────────────────────────────────────────
 local ContentArea = Instance.new("Frame")
-ContentArea.Size=UDim2.new(1,-16,0,CH);ContentArea.Position=UDim2.new(0,8,0,82)
-ContentArea.BackgroundColor3=Color3.fromRGB(11,4,25)
+ContentArea.Size=UDim2.new(1,-16,0,CH);ContentArea.Position=UDim2.new(0,8,0,88)
+ContentArea.BackgroundColor3=Color3.fromRGB(12,5,28)
 ContentArea.BorderSizePixel=0;ContentArea.ClipsDescendants=true;ContentArea.Parent=Panel
 Instance.new("UICorner",ContentArea).CornerRadius=UDim.new(0,10)
 
-Panel.Size=UDim2.new(0,W,0,82+CH+10)
+Panel.Size=UDim2.new(0,W,0,88+CH+8)
+
+-- Wire minimise
+MinBtn.MouseButton1Click:Connect(function()
+    minimised=not minimised
+    if minimised then
+        TabRow.Visible=false;ContentArea.Visible=false
+        Panel.Size=UDim2.new(0,W,0,50)
+        MinBtn.Text="▢"
+    else
+        TabRow.Visible=true;ContentArea.Visible=true
+        Panel.Size=UDim2.new(0,W,0,88+CH+8)
+        MinBtn.Text="–"
+    end
+end)
 
 -- ── Key system ────────────────────────────────────────────────
 local VALID_KEY   = "489-34"
@@ -979,9 +986,10 @@ local function SelectTab(name)
     activeTab=name
     for _,t in pairs(tabs) do
         local on=t.name==name
-        TweenService:Create(t.btn,TweenInfo.new(0.12),{
-            BackgroundColor3=on and Color3.fromRGB(92,20,180) or Color3.fromRGB(18,6,42),
-            TextColor3=on and Color3.fromRGB(255,255,255) or Color3.fromRGB(140,90,210),
+        TweenService:Create(t.btn,TweenInfo.new(0.15),{
+            BackgroundColor3=on and Color3.fromRGB(88,15,180) or Color3.fromRGB(18,6,42),
+            TextColor3=on and Color3.new(1,1,1) or Color3.fromRGB(115,70,185),
+            BackgroundTransparency=on and 0 or 0.25,
         }):Play()
         t.scroll.Visible=on
     end
@@ -990,17 +998,18 @@ end
 -- Each tab gets a ScrollingFrame so all content is scrollable
 local function AddTab(name,icon)
     local btn=Instance.new("TextButton")
-    btn.Size=UDim2.new(0,1,1,0);btn.BackgroundColor3=Color3.fromRGB(18,6,42)
+    btn.Size=UDim2.new(0,1,1,0);btn.BackgroundColor3=Color3.fromRGB(16,5,38)
+    btn.BackgroundTransparency=0.2
     btn.BorderSizePixel=0;btn.Font=Enum.Font.GothamBold;btn.TextSize=11
-    btn.TextColor3=Color3.fromRGB(140,90,210);btn.Text=icon.." "..name;btn.Parent=TabRow
-    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,8)
+    btn.TextColor3=Color3.fromRGB(130,80,200);btn.Text=icon.." "..name;btn.Parent=TabRow
+    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,10)
 
     local sf=Instance.new("ScrollingFrame")
     sf.Size=UDim2.new(1,0,1,0)
     sf.BackgroundTransparency=1
     sf.BorderSizePixel=0
-    sf.ScrollBarThickness=5
-    sf.ScrollBarImageColor3=Color3.fromRGB(100,30,190)
+    sf.ScrollBarThickness=4
+    sf.ScrollBarImageColor3=Color3.fromRGB(110,25,220)
     sf.CanvasSize=UDim2.new(0,0,0,0)
     sf.ScrollingDirection=Enum.ScrollingDirection.Y
     sf.Visible=false
@@ -1009,12 +1018,11 @@ local function AddTab(name,icon)
     local entry={name=name,btn=btn,scroll=sf}; table.insert(tabs,entry)
     btn.MouseButton1Click:Connect(function()
         if not keyUnlocked and name ~= "🔑 Key" then
-            -- flash the key tab to hint the user
             for _,t in pairs(tabs) do
                 if t.name == "🔑 Key" then
-                    TweenService:Create(t.btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(130,20,20)}):Play()
+                    TweenService:Create(t.btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(140,15,15)}):Play()
                     task.delay(0.2, function()
-                        TweenService:Create(t.btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(92,20,180)}):Play()
+                        TweenService:Create(t.btn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(88,15,180)}):Play()
                     end)
                 end
             end
@@ -1052,10 +1060,11 @@ local BTN_H = 36
 local function PBtn(parent,text,y,w,x,col)
     local b=Instance.new("TextButton")
     b.Size=UDim2.new(0,w or CW,0,BTN_H);b.Position=UDim2.new(0,x or 8,0,y)
-    b.BackgroundColor3=col or Color3.fromRGB(28,8,55);b.BorderSizePixel=0
-    b.Font=Enum.Font.GothamBold;b.TextSize=13;b.TextColor3=Color3.fromRGB(215,160,255)
+    b.BackgroundColor3=col or Color3.fromRGB(22,7,50);b.BorderSizePixel=0
+    b.Font=Enum.Font.GothamBold;b.TextSize=13;b.TextColor3=Color3.fromRGB(210,155,255)
     b.Text=text;b.Parent=parent
-    Instance.new("UICorner",b).CornerRadius=UDim.new(0,9)
+    Instance.new("UICorner",b).CornerRadius=UDim.new(0,10)
+    local _bs=Instance.new("UIStroke",b);_bs.Color=Color3.fromRGB(60,15,120);_bs.Thickness=1;_bs.Transparency=0.5
     return b
 end
 
@@ -1063,7 +1072,7 @@ local function PLbl(parent,text,y,col)
     local l=Instance.new("TextLabel")
     l.Size=UDim2.new(0,CW,0,18);l.Position=UDim2.new(0,8,0,y)
     l.BackgroundTransparency=1;l.Font=Enum.Font.Gotham;l.TextSize=12
-    l.TextColor3=col or Color3.fromRGB(110,65,170);l.Text=text
+    l.TextColor3=col or Color3.fromRGB(100,60,160);l.Text=text
     l.TextXAlignment=Enum.TextXAlignment.Left;l.TextWrapped=true;l.Parent=parent
     return l
 end
@@ -1071,13 +1080,13 @@ end
 local function PToggle(parent,text,y,def,cb)
     local on=def or false
     local b=PBtn(parent,(on and "✓  " or "    ")..text,y,nil,nil,
-        on and Color3.fromRGB(75,16,150) or Color3.fromRGB(28,8,55))
+        on and Color3.fromRGB(80,14,165) or Color3.fromRGB(22,7,50))
     b.TextXAlignment=Enum.TextXAlignment.Left
     local pad=Instance.new("UIPadding",b);pad.PaddingLeft=UDim.new(0,12)
     b.MouseButton1Click:Connect(function()
         on=not on
         b.Text=(on and "✓  " or "    ")..text
-        b.BackgroundColor3=on and Color3.fromRGB(75,16,150) or Color3.fromRGB(28,8,55)
+        b.BackgroundColor3=on and Color3.fromRGB(80,14,165) or Color3.fromRGB(22,7,50)
         cb(on);playSound("12221967")
     end)
     return b
@@ -1086,7 +1095,7 @@ end
 local function Div(parent,y)
     local d=Instance.new("Frame",parent)
     d.Size=UDim2.new(0,CW,0,1);d.Position=UDim2.new(0,8,0,y)
-    d.BackgroundColor3=Color3.fromRGB(55,18,95);d.BorderSizePixel=0
+    d.BackgroundColor3=Color3.fromRGB(50,16,90);d.BorderSizePixel=0
 end
 
 -- Helper: set canvas height of a scrollframe to fit all content
@@ -1098,34 +1107,33 @@ end
 -- MISC PAGE  (scrollable)
 -- ══════════════════════════════════════════════════════
 local ToggleBtn    = PBtn(miscSF,"🪐  Orbit  OFF",8)
-local FakeLagBtn   = PBtn(miscSF,"🌐  Fake Lag  OFF",52,nil,nil,Color3.fromRGB(44,8,8))
-local AntiTPBtn    = PBtn(miscSF,"🛡️  Anti-TP  OFF",96,nil,nil,Color3.fromRGB(12,26,12))
-local AntiFlingBtn = PBtn(miscSF,"🔒  Anti-Fling  OFF",140,nil,nil,Color3.fromRGB(16,16,44))
+local AntiTPBtn    = PBtn(miscSF,"🛡️  Anti-TP  OFF",52,nil,nil,Color3.fromRGB(12,26,12))
+local AntiFlingBtn = PBtn(miscSF,"🔒  Anti-Fling  OFF",96,nil,nil,Color3.fromRGB(16,16,44))
 
-Div(miscSF,184)
-PLbl(miscSF,"Orbit Radius:",190)
-local DecBtn=PBtn(miscSF,"◀",210,40,8);DecBtn.TextSize=14
+Div(miscSF,140)
+PLbl(miscSF,"Orbit Radius:",146)
+local DecBtn=PBtn(miscSF,"◀",166,40,8);DecBtn.TextSize=14
 local RadLbl=Instance.new("TextLabel")
-RadLbl.Size=UDim2.new(0,CW-88,0,BTN_H);RadLbl.Position=UDim2.new(0,54,0,210)
+RadLbl.Size=UDim2.new(0,CW-88,0,BTN_H);RadLbl.Position=UDim2.new(0,54,0,166)
 RadLbl.BackgroundColor3=Color3.fromRGB(14,4,30);RadLbl.Text="Radius: 18"
 RadLbl.TextColor3=Color3.fromRGB(215,165,255);RadLbl.Font=Enum.Font.Gotham;RadLbl.TextSize=13
 RadLbl.Parent=miscSF;Instance.new("UICorner",RadLbl).CornerRadius=UDim.new(0,9)
-local IncBtn=PBtn(miscSF,"▶",210,40,CW-32);IncBtn.TextSize=14
+local IncBtn=PBtn(miscSF,"▶",166,40,CW-32);IncBtn.TextSize=14
 
-Div(miscSF,256)
-PLbl(miscSF,"Pattern:",262)
+Div(miscSF,212)
+PLbl(miscSF,"Pattern:",218)
 local patBtns={};local patNames={"Halo","Helix","★ Star","❋ Fig8"}
 local patW=math.floor((CW-12)/4)
 for i,nm in ipairs(patNames) do
     local b=Instance.new("TextButton")
-    b.Size=UDim2.new(0,patW,0,28);b.Position=UDim2.new(0,8+(i-1)*(patW+4),0,282)
-    b.BackgroundColor3=i==1 and Color3.fromRGB(85,24,158) or Color3.fromRGB(18,5,40)
+    b.Size=UDim2.new(0,patW,0,28);b.Position=UDim2.new(0,8+(i-1)*(patW+4),0,238)
+    b.BackgroundColor3=i==1 and Color3.fromRGB(88,15,180) or Color3.fromRGB(16,5,38)
     b.BorderSizePixel=0;b.Font=Enum.Font.Gotham;b.TextSize=11
     b.TextColor3=Color3.fromRGB(215,160,255);b.Text=nm;b.Parent=miscSF
     Instance.new("UICorner",b).CornerRadius=UDim.new(0,7);patBtns[i]=b
 end
 
-SetCanvas(miscSF, 320)
+SetCanvas(miscSF, 276)
 
 -- ══════════════════════════════════════════════════════
 -- MOVEMENTS PAGE
@@ -1135,7 +1143,7 @@ local FlyBtn     = PBtn(movSF,"✈️   Fly  OFF",8)
 -- Fly speed slider
 local fsSliderBG=Instance.new("Frame",movSF)
 fsSliderBG.Size=UDim2.new(0,CW,0,36);fsSliderBG.Position=UDim2.new(0,8,0,52)
-fsSliderBG.BackgroundColor3=Color3.fromRGB(14,4,30);fsSliderBG.BorderSizePixel=0
+fsSliderBG.BackgroundColor3=Color3.fromRGB(16,5,38);fsSliderBG.BorderSizePixel=0
 Instance.new("UICorner",fsSliderBG).CornerRadius=UDim.new(0,9)
 
 local fsValLbl=Instance.new("TextLabel",fsSliderBG)
@@ -1146,7 +1154,7 @@ fsValLbl.TextXAlignment=Enum.TextXAlignment.Left
 
 local fsTrackBG=Instance.new("Frame",fsSliderBG)
 fsTrackBG.Size=UDim2.new(1,-72,0,6);fsTrackBG.Position=UDim2.new(0,64,0.5,-3)
-fsTrackBG.BackgroundColor3=Color3.fromRGB(40,10,80);fsTrackBG.BorderSizePixel=0
+fsTrackBG.BackgroundColor3=Color3.fromRGB(25,8,55);fsTrackBG.BorderSizePixel=0
 Instance.new("UICorner",fsTrackBG).CornerRadius=UDim.new(1,0)
 
 local fsTrackFill=Instance.new("Frame",fsTrackBG)
@@ -1191,7 +1199,7 @@ local wsToggle=PBtn(movSF,"🚶  Speed  OFF",282,nil,nil,Color3.fromRGB(12,26,44
 
 local wsSliderBG=Instance.new("Frame",movSF)
 wsSliderBG.Size=UDim2.new(0,CW,0,36);wsSliderBG.Position=UDim2.new(0,8,0,326)
-wsSliderBG.BackgroundColor3=Color3.fromRGB(14,4,30);wsSliderBG.BorderSizePixel=0
+wsSliderBG.BackgroundColor3=Color3.fromRGB(16,5,38);wsSliderBG.BorderSizePixel=0
 Instance.new("UICorner",wsSliderBG).CornerRadius=UDim.new(0,9)
 
 local wsValLbl=Instance.new("TextLabel",wsSliderBG)
@@ -1202,7 +1210,7 @@ wsValLbl.TextXAlignment=Enum.TextXAlignment.Left
 
 local wsTrackBG=Instance.new("Frame",wsSliderBG)
 wsTrackBG.Size=UDim2.new(1,-72,0,6);wsTrackBG.Position=UDim2.new(0,64,0.5,-3)
-wsTrackBG.BackgroundColor3=Color3.fromRGB(40,10,80);wsTrackBG.BorderSizePixel=0
+wsTrackBG.BackgroundColor3=Color3.fromRGB(25,8,55);wsTrackBG.BorderSizePixel=0
 Instance.new("UICorner",wsTrackBG).CornerRadius=UDim.new(1,0)
 
 local wsTrackFill=Instance.new("Frame",wsTrackBG)
@@ -1327,14 +1335,14 @@ for i,k in ipairs(AIM_KEYS) do
     local yOff = 98 + row * 36
     local b=Instance.new("TextButton")
     b.Size=UDim2.new(0,kW,0,28);b.Position=UDim2.new(0,8+col*(kW+4),0,yOff)
-    b.BackgroundColor3=i==1 and Color3.fromRGB(85,24,158) or Color3.fromRGB(18,5,40)
+    b.BackgroundColor3=i==1 and Color3.fromRGB(88,15,180) or Color3.fromRGB(16,5,38)
     b.BorderSizePixel=0;b.Font=Enum.Font.GothamBold;b.TextSize=12
     b.TextColor3=Color3.fromRGB(215,160,255);b.Text=k.label;b.Parent=aimSF
     Instance.new("UICorner",b).CornerRadius=UDim.new(0,7);keyBtns[i]=b
     b.MouseButton1Click:Connect(function()
         SetAimKey(i)
         for j,kb in ipairs(keyBtns) do
-            kb.BackgroundColor3=j==i and Color3.fromRGB(85,24,158) or Color3.fromRGB(18,5,40)
+            kb.BackgroundColor3=j==i and Color3.fromRGB(88,15,180) or Color3.fromRGB(16,5,38)
         end
         playSound("12221967")
     end)
@@ -1351,14 +1359,14 @@ local bW=math.floor((CW-12)/4)
 for i,nm in ipairs(boneNames) do
     local b=Instance.new("TextButton")
     b.Size=UDim2.new(0,bW,0,28);b.Position=UDim2.new(0,8+(i-1)*(bW+4),0,202)
-    b.BackgroundColor3=i==1 and Color3.fromRGB(85,24,158) or Color3.fromRGB(18,5,40)
+    b.BackgroundColor3=i==1 and Color3.fromRGB(88,15,180) or Color3.fromRGB(16,5,38)
     b.BorderSizePixel=0;b.Font=Enum.Font.Gotham;b.TextSize=11
     b.TextColor3=Color3.fromRGB(215,160,255);b.Text=nm;b.Parent=aimSF
     Instance.new("UICorner",b).CornerRadius=UDim.new(0,7);boneBtns[i]=b
     b.MouseButton1Click:Connect(function()
         aimbotBone=boneActual[i]
         for j,bb in ipairs(boneBtns) do
-            bb.BackgroundColor3=j==i and Color3.fromRGB(85,24,158) or Color3.fromRGB(18,5,40)
+            bb.BackgroundColor3=j==i and Color3.fromRGB(88,15,180) or Color3.fromRGB(16,5,38)
         end
         playSound("12221967")
     end)
@@ -1455,7 +1463,7 @@ local function RefreshPlayers()
     for _,pl in ipairs(list) do
         if pl~=LocalPlayer then
             local btn=Instance.new("TextButton")
-            btn.Size=UDim2.new(1,-6,0,32);btn.BackgroundColor3=Color3.fromRGB(22,7,46)
+            btn.Size=UDim2.new(1,-6,0,32);btn.BackgroundColor3=Color3.fromRGB(16,5,38)
             btn.BorderSizePixel=0;btn.Font=Enum.Font.Gotham;btn.TextSize=13
             btn.TextColor3=Color3.fromRGB(205,158,255)
             btn.Text="  👤  "..pl.Name;btn.TextXAlignment=Enum.TextXAlignment.Left
@@ -1694,7 +1702,7 @@ end
 ToggleBtn.MouseButton1Click:Connect(function()
     orbitEnabled=not orbitEnabled
     ToggleBtn.Text="🪐  Orbit  "..(orbitEnabled and "ON ✓" or "OFF")
-    ToggleBtn.BackgroundColor3=orbitEnabled and Color3.fromRGB(80,18,152) or Color3.fromRGB(28,8,55)
+    ToggleBtn.BackgroundColor3=orbitEnabled and Color3.fromRGB(80,14,165) or Color3.fromRGB(22,7,50)
     if orbitEnabled then GrabEntireMap()
     else
         for _,entry in ipairs(orbitParts) do
@@ -1707,12 +1715,6 @@ ToggleBtn.MouseButton1Click:Connect(function()
         end
         orbitParts={};grabbedSet={}
     end
-    playSound("12221967")
-end)
-
-FakeLagBtn.MouseButton1Click:Connect(function()
-    if fakeLag then StopFakeLag();FakeLagBtn.Text="🌐  Fake Lag  OFF";FakeLagBtn.BackgroundColor3=Color3.fromRGB(44,8,8)
-    else StartFakeLag();FakeLagBtn.Text="🌐  Fake Lag  ON ✓";FakeLagBtn.BackgroundColor3=Color3.fromRGB(132,10,10) end
     playSound("12221967")
 end)
 
@@ -1732,7 +1734,7 @@ AntiFlingBtn.MouseButton1Click:Connect(function()
 end)
 
 FlyBtn.MouseButton1Click:Connect(function()
-    if flying then StopFly();FlyBtn.Text="✈️   Fly  OFF";FlyBtn.BackgroundColor3=Color3.fromRGB(28,8,55)
+    if flying then StopFly();FlyBtn.Text="✈️   Fly  OFF";FlyBtn.BackgroundColor3=Color3.fromRGB(22,7,50)
     else StartFly();FlyBtn.Text="✈️   Fly  ON ✓";FlyBtn.BackgroundColor3=Color3.fromRGB(14,86,172) end
     playSound("12221967")
 end)
@@ -1753,7 +1755,7 @@ end)
 ESPBtn.MouseButton1Click:Connect(function()
     espEnabled=not espEnabled
     ESPBtn.Text="👁  ESP  "..(espEnabled and "ON ✓" or "OFF")
-    ESPBtn.BackgroundColor3=espEnabled and Color3.fromRGB(172,26,26) or Color3.fromRGB(28,8,55)
+    ESPBtn.BackgroundColor3=espEnabled and Color3.fromRGB(172,26,26) or Color3.fromRGB(22,7,50)
     if espEnabled then for _,pl in pairs(Players:GetPlayers()) do CreateESP(pl) end end
     playSound("12221967")
 end)
@@ -1762,7 +1764,7 @@ AimBtn.MouseButton1Click:Connect(function()
     aimbotEnabled=not aimbotEnabled
     aimKeyHeld=false   -- reset on toggle
     AimBtn.Text="🎯  Aimbot  "..(aimbotEnabled and "ON ✓" or "OFF")
-    AimBtn.BackgroundColor3=aimbotEnabled and Color3.fromRGB(162,100,0) or Color3.fromRGB(28,8,55)
+    AimBtn.BackgroundColor3=aimbotEnabled and Color3.fromRGB(162,100,0) or Color3.fromRGB(22,7,50)
     if not aimbotEnabled then aimFOVCircle.Visible=false;aimDot.Visible=false end
     playSound("12221967")
 end)
@@ -1777,7 +1779,7 @@ end)
 for i,btn in ipairs(patBtns) do
     btn.MouseButton1Click:Connect(function()
         orbitPattern=i
-        for j,b in ipairs(patBtns) do b.BackgroundColor3=j==i and Color3.fromRGB(85,24,158) or Color3.fromRGB(18,5,40) end
+        for j,b in ipairs(patBtns) do b.BackgroundColor3=j==i and Color3.fromRGB(88,15,180) or Color3.fromRGB(16,5,38) end
         masterAngle=0;playSound("12221967")
     end)
 end
