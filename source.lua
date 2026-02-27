@@ -1032,7 +1032,6 @@ local movSF   = AddTab("Move","🏃")
 local espSF   = AddTab("ESP","👁")
 local aimSF   = AddTab("Aim","🎯")
 local plSF    = AddTab("Players","👥")
-local discordSF = AddTab("Discord","💬")
 
 local function LayoutTabs()
     local n=#tabs;local gap=4
@@ -1179,19 +1178,19 @@ UserInputService.InputChanged:Connect(function(i)
     end
 end)
 
-local FlingBtn   = PBtn(movSF,"🌀  Fling  OFF",96,nil,nil,Color3.fromRGB(50,9,18))
-local ClickTPBtn = PBtn(movSF,"🖱️  Click TP  OFF",140,nil,nil,Color3.fromRGB(12,7,44))
-PLbl(movSF,"Click anywhere in the world to teleport there.",182)
+local FlingBtn   = PBtn(movSF,"🌀  Fling  OFF",140,nil,nil,Color3.fromRGB(50,9,18))
+local ClickTPBtn = PBtn(movSF,"🖱️  Click TP  OFF",184,nil,nil,Color3.fromRGB(12,7,44))
+PLbl(movSF,"Click anywhere in the world to teleport there.",226)
 
-Div(movSF,212)
-PLbl(movSF,"Run Speed:",218)
+Div(movSF,256)
+PLbl(movSF,"Run Speed:",262)
 
 -- Speed slider
 local wsEnabled=false
-local wsToggle=PBtn(movSF,"🚶  Speed  OFF",238,nil,nil,Color3.fromRGB(12,26,44))
+local wsToggle=PBtn(movSF,"🚶  Speed  OFF",282,nil,nil,Color3.fromRGB(12,26,44))
 
 local wsSliderBG=Instance.new("Frame",movSF)
-wsSliderBG.Size=UDim2.new(0,CW,0,36);wsSliderBG.Position=UDim2.new(0,8,0,282)
+wsSliderBG.Size=UDim2.new(0,CW,0,36);wsSliderBG.Position=UDim2.new(0,8,0,326)
 wsSliderBG.BackgroundColor3=Color3.fromRGB(14,4,30);wsSliderBG.BorderSizePixel=0
 Instance.new("UICorner",wsSliderBG).CornerRadius=UDim.new(0,9)
 
@@ -1255,7 +1254,7 @@ wsToggle.MouseButton1Click:Connect(function()
     playSound("12221967")
 end)
 
-SetCanvas(movSF, 334)
+SetCanvas(movSF, 378)
 
 -- ══════════════════════════════════════════════════════
 -- ESP PAGE
@@ -1519,38 +1518,6 @@ Players.PlayerRemoving:Connect(function(pl)
     RefreshPlayers()
 end)
 
-
--- ══════════════════════════════════════════════════════
--- DISCORD TAB
--- ══════════════════════════════════════════════════════
-PLbl(discordSF,"💬  Discord",8,Color3.fromRGB(210,145,255))
-
-local InviteCard=Instance.new("Frame",discordSF)
-InviteCard.Size=UDim2.new(0,CW,0,52);InviteCard.Position=UDim2.new(0,8,0,32)
-InviteCard.BackgroundColor3=Color3.fromRGB(30,50,160);InviteCard.BorderSizePixel=0
-Instance.new("UICorner",InviteCard).CornerRadius=UDim.new(0,10)
-local InviteLbl=Instance.new("TextLabel",InviteCard)
-InviteLbl.Size=UDim2.new(1,-12,1,0);InviteLbl.Position=UDim2.new(0,10,0,0)
-InviteLbl.BackgroundTransparency=1;InviteLbl.Font=Enum.Font.GothamBold;InviteLbl.TextSize=14
-InviteLbl.TextColor3=Color3.new(1,1,1);InviteLbl.Text="discord.gg/8fq9bZ6c2A"
-InviteLbl.TextXAlignment=Enum.TextXAlignment.Left
-
-local CopyDiscordBtn=PBtn(discordSF,"📋  Copy Invite Link",96,nil,nil,Color3.fromRGB(30,50,160))
-CopyDiscordBtn.MouseButton1Click:Connect(function()
-    pcall(function() if setclipboard then setclipboard("https://discord.gg/8fq9bZ6c2A") end end)
-    pcall(function() StarterGui:SetCore("SendNotification",{Title="💬 Discord",Text="Invite copied! discord.gg/8fq9bZ6c2A",Duration=4}) end)
-    playSound("12221967")
-end)
-
-local OpenDiscordBtn=PBtn(discordSF,"🌐  Open in Browser",140,nil,nil,Color3.fromRGB(18,115,75))
-OpenDiscordBtn.MouseButton1Click:Connect(function()
-    pcall(function() StarterGui:SetCore("OpenBrowserWindow","https://discord.gg/8fq9bZ6c2A") end)
-    pcall(function() StarterGui:SetCore("SendNotification",{Title="💬 Discord",Text="Opening discord.gg/8fq9bZ6c2A",Duration=4}) end)
-    playSound("12221967")
-end)
-
-local OwnerLbl=PLbl(discordSF,"Owner:  A_Trojanvirus",192,Color3.fromRGB(130,80,200))
-SetCanvas(discordSF,220)
 
 -- ══════════════════════════════════════════════════════
 -- KEY TAB CONTENT
